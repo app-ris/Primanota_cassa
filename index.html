@@ -239,6 +239,57 @@
     cursor:not-allowed;
   }
 
+  .panels{
+    margin-top:16px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+  }
+  .panel{
+    border:1px solid var(--line);
+    border-radius:8px;
+    background:#fffefb;
+    overflow:hidden;
+  }
+  .panel summary{
+    list-style:none;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    padding:10px 14px;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.03em;
+    text-transform:uppercase;
+    color:var(--ink-soft);
+    background:var(--paper-deep);
+  }
+  .panel summary::-webkit-details-marker{ display:none; }
+  .panel summary .chev{
+    font-size:11px;
+    color:var(--brass-dark);
+    transition:transform .15s ease;
+  }
+  .panel[open] summary .chev{ transform:rotate(90deg); }
+  .panel pre{
+    margin:0;
+    padding:14px;
+    font-family:var(--mono);
+    font-size:11.5px;
+    line-height:1.55;
+    white-space:pre-wrap;
+    word-break:break-all;
+    max-height:220px;
+    overflow-y:auto;
+    color:var(--ink);
+  }
+  .panel .empty{
+    color:var(--muted);
+    font-style:italic;
+  }
+
   .foot-note{
     text-align:center;
     font-size:11px;
@@ -275,6 +326,16 @@
         <span class="receipt-status" id="receiptStatus">Esito</span>
         <pre id="receiptText"></pre>
       </div>
+      <div class="panels">
+        <details class="panel" id="reqPanel">
+          <summary>Chiamata inviata <span class="chev">&#9656;</span></summary>
+          <pre id="reqPanelText"><span class="empty">Nessuna chiamata effettuata.</span></pre>
+        </details>
+        <details class="panel" id="respPanel">
+          <summary>Risposta ricevuta <span class="chev">&#9656;</span></summary>
+          <pre id="respPanelText"><span class="empty">Nessuna risposta ricevuta.</span></pre>
+        </details>
+      </div>
       <div class="downloads">
         <button type="button" class="btn-ghost" id="downloadReq" disabled>Scarica richiesta (.txt)</button>
         <button type="button" class="btn-ghost" id="downloadResp" disabled>Scarica risposta (.txt)</button>
@@ -302,6 +363,8 @@
   const receiptText = document.getElementById("receiptText");
   const downloadReqBtn = document.getElementById("downloadReq");
   const downloadRespBtn = document.getElementById("downloadResp");
+  const reqPanelText = document.getElementById("reqPanelText");
+  const respPanelText = document.getElementById("respPanelText");
 
   let selectedFile = null;
   let lastRequestXML = "";
@@ -385,12 +448,23 @@
     } else if (kind === "err"){
       receiptStatus.classList.add("err");
       receiptStatus.textContent = "WSCODE 2 · Errore";
+    } else if (kind === "network"){
+      receiptStatus.classList.add("err");
+      receiptStatus.textContent = "Chiamata non riuscita (rete/CORS)";
     } else {
       receiptStatus.classList.add("err");
       receiptStatus.textContent = "Esito non riconosciuto";
     }
     receiptText.textContent = text;
     receipt.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function setPanelText(el, content){
+    if (content){
+      el.textContent = content;
+    } else {
+      el.innerHTML = '<span class="empty">Nessun contenuto disponibile.</span>';
+    }
   }
 
   function downloadText(filename, content){
@@ -424,6 +498,7 @@
       const base64 = await readFileAsBase64(selectedFile);
       const requestXML = buildEnvelope(selectedFile.name, base64);
       lastRequestXML = requestXML;
+      setPanelText(reqPanelText, requestXML);
 
       const response = await fetch(WS_URL, {
         method: "POST",
@@ -437,6 +512,7 @@
 
       const responseText = await response.text();
       lastResponseXML = responseText;
+      setPanelText(respPanelText, responseText);
       downloadReqBtn.disabled = false;
       downloadRespBtn.disabled = false;
 
@@ -479,7 +555,12 @@
       }
 
     } catch (err){
-      showResult("err", "Chiamata al web service non riuscita.\n\n" + (err && err.message ? err.message : String(err)));
+      const isLikelyCors = err instanceof TypeError;
+      const hint = isLikelyCors
+        ? "Il browser ha bloccato la chiamata prima di ricevere una risposta: quasi sempre è un problema di CORS (il server non restituisce l'header Access-Control-Allow-Origin per questa pagina) oppure di certificato/rete sulla porta 448. Apri la console del browser (F12 -> Console/Network) per il dettaglio esatto: se vedi la scritta \"CORS\" o \"blocked\", il file che gira su GitHub Pages non può leggere la risposta finché il CorsFilter sul Tomcat non la consente esplicitamente."
+        : "Errore imprevisto durante l'invio.";
+      showResult("network", "Chiamata al web service non riuscita.\n\n" + (err && err.message ? err.message : String(err)) + "\n\n" + hint);
+      setPanelText(respPanelText, "");
       downloadReqBtn.disabled = !lastRequestXML;
       downloadRespBtn.disabled = !lastResponseXML;
     } finally {
