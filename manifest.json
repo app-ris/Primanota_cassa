@@ -1,7 +1,7 @@
 {
   "name": "Primanota Cassa",
   "short_name": "Primanota",
-  "description": "Caricamento file Primanota Cassa verso Wigest",
+  "description": "Caricamento file per Primanota di cassa",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
