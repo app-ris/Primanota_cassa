@@ -472,6 +472,25 @@
 
   // Find the first element anywhere in the doc matching a local name,
   // regardless of namespace prefix (SOAP responses often carry one).
+  function decodeEntitiesOnce(str){
+    const ta = document.createElement("textarea");
+    ta.innerHTML = str;
+    return ta.value;
+  }
+
+  // Some server responses are double-escaped (e.g. "&amp;lt;" instead of "<"),
+  // so decode repeatedly until nothing changes (capped to avoid infinite loops).
+  function deepDecode(str){
+    if (!str) return str;
+    let prev = str;
+    for (let i = 0; i < 5; i++){
+      const next = decodeEntitiesOnce(prev);
+      if (next === prev) break;
+      prev = next;
+    }
+    return prev;
+  }
+
   function findByLocalName(root, name){
     const all = root.getElementsByTagName("*");
     for (let i = 0; i < all.length; i++){
@@ -556,22 +575,23 @@
       });
 
       const responseText = await response.text();
-      lastResponseXML = responseText;
-      setPanelText(respPanelText, responseText);
+      const cleanedResponseText = deepDecode(responseText);
+      lastResponseXML = cleanedResponseText;
+      setPanelText(respPanelText, cleanedResponseText);
       downloadReqBtn.disabled = false;
       downloadRespBtn.disabled = false;
 
       if (!response.ok){
-        showResult("err", `Errore HTTP ${response.status} ${response.statusText}\n\n${responseText}`);
+        showResult("err", `Errore HTTP ${response.status} ${response.statusText}\n\n${cleanedResponseText}`);
         return;
       }
 
       const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(responseText, "text/xml");
+      const xmlDoc = parser.parseFromString(cleanedResponseText, "text/xml");
 
       const parserError = xmlDoc.getElementsByTagName("parsererror")[0];
       if (parserError){
-        showResult("err", "La risposta ricevuta non è un XML valido:\n\n" + responseText);
+        showResult("err", "La risposta ricevuta non è un XML valido:\n\n" + cleanedResponseText);
         return;
       }
 
@@ -579,14 +599,14 @@
       const wscode = textOf(wscodeEl);
 
       if (wscode === "1"){
-        const descr = textOf(findByLocalName(xmlDoc, "WSDESCR"));
+        const descr = deepDecode(textOf(findByLocalName(xmlDoc, "WSDESCR")));
         showResult("ok", descr || "(WSDESCR vuoto)");
       } else if (wscode === "2"){
-        const wserr = textOf(findByLocalName(xmlDoc, "WSERR"));
+        const wserr = deepDecode(textOf(findByLocalName(xmlDoc, "WSERR")));
         const cassaEl = findByLocalName(xmlDoc, "Cassa");
-        const filename = textOf(cassaEl && findByLocalName(cassaEl, "Filename"));
-        const risultato = textOf(cassaEl && findByLocalName(cassaEl, "risultato"));
-        const messaggio = textOf(cassaEl && findByLocalName(cassaEl, "messaggio"));
+        const filename = deepDecode(textOf(cassaEl && findByLocalName(cassaEl, "Filename")));
+        const risultato = deepDecode(textOf(cassaEl && findByLocalName(cassaEl, "risultato")));
+        const messaggio = deepDecode(textOf(cassaEl && findByLocalName(cassaEl, "messaggio")));
         const lines = [
           wserr || "(WSERR vuoto)",
           "",
@@ -596,7 +616,7 @@
         ];
         showResult("err", lines.join("\n"));
       } else {
-        showResult("unknown", `WSCODE non riconosciuto (${wscode || "assente"}).\n\nRisposta completa:\n${responseText}`);
+        showResult("unknown", `WSCODE non riconosciuto (${wscode || "assente"}).\n\nRisposta completa:\n${cleanedResponseText}`);
       }
 
     } catch (err){
