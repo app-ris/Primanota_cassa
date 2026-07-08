@@ -600,7 +600,7 @@
       downloadRespBtn.disabled = false;
 
       if (!response.ok){
-        showResult("err", `Errore HTTP ${response.status} ${response.statusText}\n\n${cleanedResponseText}`, "?");
+        showResult("err", `Errore HTTP ${response.status} ${response.statusText}.\n\nDettagli nel pannello "Risposta ricevuta" qui sotto o nel file scaricabile.`, "?");
         return;
       }
 
@@ -609,14 +609,14 @@
 
       const parserError = xmlDoc.getElementsByTagName("parsererror")[0];
       if (parserError){
-        showResult("err", "La risposta ricevuta non è un XML valido:\n\n" + cleanedResponseText, "?");
+        showResult("err", "La risposta ricevuta non è un XML valido.\n\nDettagli nel pannello \"Risposta ricevuta\" qui sotto o nel file scaricabile.", "?");
         return;
       }
 
       // I dati utili sono dentro <Trangws>, non alla radice del documento.
       const trangwsEl = findByLocalName(xmlDoc, "Trangws");
       if (!trangwsEl){
-        showResult("unknown", "Impossibile trovare il tag <Trangws> nella risposta.\n\nRisposta completa:\n" + cleanedResponseText, "?");
+        showResult("unknown", "Impossibile trovare il tag <Trangws> nella risposta.\n\nDettagli nel pannello \"Risposta ricevuta\" qui sotto o nel file scaricabile.", "?");
         return;
       }
 
@@ -644,7 +644,12 @@
         if (rowsText) lines.push("", rowsText);
         showResult("err", lines.join("\n"), wscode);
       } else {
-        showResult("unknown", `WSCODE non riconosciuto (${wscode || "assente"}).\n\nRisposta completa:\n${cleanedResponseText}`, wscode || "?");
+        const lines = [`WSCODE ricevuto: ${wscode || "assente"}`];
+        if (descr) lines.push(`WSDESCR: ${descr}`);
+        if (wserr) lines.push(`WSERR: ${wserr}`);
+        if (wswar) lines.push(`WSWAR: ${wswar}`);
+        if (rowsText) lines.push("", rowsText);
+        showResult("unknown", lines.join("\n"), wscode || "?");
       }
 
     } catch (err){
