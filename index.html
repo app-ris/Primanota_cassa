@@ -211,21 +211,6 @@
     -webkit-mask-image: linear-gradient(to bottom, transparent 50%, black 50%);
     mask-image: linear-gradient(to bottom, transparent 50%, black 50%);
   }
-  .receipt-status{
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    font-size:11px;
-    font-weight:700;
-    letter-spacing:.06em;
-    text-transform:uppercase;
-    padding:4px 9px;
-    border-radius:999px;
-    margin-bottom:12px;
-  }
-  .receipt-status.ok{ background:var(--success-bg); color:var(--success); }
-  .receipt-status.err{ background:var(--danger-bg); color:var(--danger); }
-
   .receipt pre{
     font-family:var(--mono);
     font-size:13px;
@@ -345,7 +330,6 @@
 
     <div class="result-wrap hidden" id="resultWrap">
       <div class="receipt" id="receipt">
-        <span class="receipt-status" id="receiptStatus">Esito</span>
         <pre id="receiptText"></pre>
       </div>
       <div class="panels">
@@ -380,7 +364,6 @@
   const sendBtn = document.getElementById("sendBtn");
   const resultWrap = document.getElementById("resultWrap");
   const receipt = document.getElementById("receipt");
-  const receiptStatus = document.getElementById("receiptStatus");
   const receiptText = document.getElementById("receiptText");
   const downloadReqBtn = document.getElementById("downloadReq");
   const downloadRespBtn = document.getElementById("downloadResp");
@@ -523,20 +506,6 @@
 
   function showResult(kind, text, code){
     resultWrap.classList.remove("hidden");
-    receiptStatus.classList.remove("ok", "err");
-    if (kind === "ok"){
-      receiptStatus.classList.add("ok");
-      receiptStatus.textContent = "OK";
-    } else if (kind === "err"){
-      receiptStatus.classList.add("err");
-      receiptStatus.textContent = "Errore";
-    } else if (kind === "network"){
-      receiptStatus.classList.add("err");
-      receiptStatus.textContent = "Chiamata non riuscita (rete/CORS)";
-    } else {
-      receiptStatus.classList.add("err");
-      receiptStatus.textContent = "Esito non riconosciuto";
-    }
     receiptText.textContent = text;
     receipt.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
