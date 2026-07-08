@@ -491,27 +491,45 @@
     return prev;
   }
 
+  // Find the first element anywhere under root matching a local name,
+  // regardless of namespace prefix or letter case (the server has changed
+  // casing between versions, so we match case-insensitively for safety).
   function findByLocalName(root, name){
+    if (!root) return null;
     const all = root.getElementsByTagName("*");
+    const target = name.toLowerCase();
     for (let i = 0; i < all.length; i++){
-      if (all[i].localName === name || all[i].nodeName === name) return all[i];
+      const ln = all[i].localName || all[i].nodeName;
+      if (ln && ln.toLowerCase() === target) return all[i];
     }
     return null;
+  }
+
+  function findAllByLocalName(root, name){
+    if (!root) return [];
+    const all = root.getElementsByTagName("*");
+    const target = name.toLowerCase();
+    const results = [];
+    for (let i = 0; i < all.length; i++){
+      const ln = all[i].localName || all[i].nodeName;
+      if (ln && ln.toLowerCase() === target) results.push(all[i]);
+    }
+    return results;
   }
 
   function textOf(el){
     return el ? el.textContent.trim() : "";
   }
 
-  function showResult(kind, text){
+  function showResult(kind, text, code){
     resultWrap.classList.remove("hidden");
     receiptStatus.classList.remove("ok", "err");
     if (kind === "ok"){
       receiptStatus.classList.add("ok");
-      receiptStatus.textContent = "WSCODE 1 · OK";
+      receiptStatus.textContent = `WSCODE ${code} · OK`;
     } else if (kind === "err"){
       receiptStatus.classList.add("err");
-      receiptStatus.textContent = "WSCODE 2 · Errore";
+      receiptStatus.textContent = `WSCODE ${code} · Errore`;
     } else if (kind === "network"){
       receiptStatus.classList.add("err");
       receiptStatus.textContent = "Chiamata non riuscita (rete/CORS)";
@@ -582,7 +600,7 @@
       downloadRespBtn.disabled = false;
 
       if (!response.ok){
-        showResult("err", `Errore HTTP ${response.status} ${response.statusText}\n\n${cleanedResponseText}`);
+        showResult("err", `Errore HTTP ${response.status} ${response.statusText}\n\n${cleanedResponseText}`, "?");
         return;
       }
 
@@ -591,32 +609,42 @@
 
       const parserError = xmlDoc.getElementsByTagName("parsererror")[0];
       if (parserError){
-        showResult("err", "La risposta ricevuta non è un XML valido:\n\n" + cleanedResponseText);
+        showResult("err", "La risposta ricevuta non è un XML valido:\n\n" + cleanedResponseText, "?");
         return;
       }
 
-      const wscodeEl = findByLocalName(xmlDoc, "WSCODE");
-      const wscode = textOf(wscodeEl);
+      // I dati utili sono dentro <Trangws>, non alla radice del documento.
+      const trangwsEl = findByLocalName(xmlDoc, "Trangws");
+      if (!trangwsEl){
+        showResult("unknown", "Impossibile trovare il tag <Trangws> nella risposta.\n\nRisposta completa:\n" + cleanedResponseText, "?");
+        return;
+      }
 
-      if (wscode === "1"){
-        const descr = deepDecode(textOf(findByLocalName(xmlDoc, "WSDESCR")));
-        showResult("ok", descr || "(WSDESCR vuoto)");
-      } else if (wscode === "2"){
-        const wserr = deepDecode(textOf(findByLocalName(xmlDoc, "WSERR")));
-        const cassaEl = findByLocalName(xmlDoc, "Cassa");
-        const filename = deepDecode(textOf(cassaEl && findByLocalName(cassaEl, "Filename")));
-        const risultato = deepDecode(textOf(cassaEl && findByLocalName(cassaEl, "risultato")));
-        const messaggio = deepDecode(textOf(cassaEl && findByLocalName(cassaEl, "messaggio")));
-        const lines = [
-          wserr || "(WSERR vuoto)",
-          "",
-          `Filename: ${filename}`,
-          `risultato: ${risultato}`,
-          `messaggio: ${messaggio}`
-        ];
-        showResult("err", lines.join("\n"));
+      const wscode = deepDecode(textOf(findByLocalName(trangwsEl, "WSCODE")));
+      const descr = deepDecode(textOf(findByLocalName(trangwsEl, "WSDESCR")));
+      const wserr = deepDecode(textOf(findByLocalName(trangwsEl, "WSERR")));
+      const wswar = deepDecode(textOf(findByLocalName(trangwsEl, "WSWAR")));
+
+      // I dettagli per file sono dentro <WSRET><CASSA><row>...</row></CASSA></WSRET>,
+      // possono esserci più righe.
+      const wsretEl = findByLocalName(trangwsEl, "WSRET");
+      const rowEls = findAllByLocalName(wsretEl, "row");
+      const rowsText = rowEls.map((rowEl) => {
+        const filename = deepDecode(textOf(findByLocalName(rowEl, "FILENAME")));
+        const risultato = deepDecode(textOf(findByLocalName(rowEl, "RISULTATO")));
+        const messaggio = deepDecode(textOf(findByLocalName(rowEl, "MESSAGGIO")));
+        return `Filename: ${filename}\nrisultato: ${risultato}\nmessaggio: ${messaggio}`;
+      }).join("\n\n");
+
+      if (wscode === "0"){
+        showResult("ok", [descr || "(WSDESCR vuoto)", rowsText].filter(Boolean).join("\n\n"), wscode);
+      } else if (wscode === "1"){
+        const lines = [wserr || descr || "(nessun messaggio d'errore)"];
+        if (wswar) lines.push("Avviso: " + wswar);
+        if (rowsText) lines.push("", rowsText);
+        showResult("err", lines.join("\n"), wscode);
       } else {
-        showResult("unknown", `WSCODE non riconosciuto (${wscode || "assente"}).\n\nRisposta completa:\n${cleanedResponseText}`);
+        showResult("unknown", `WSCODE non riconosciuto (${wscode || "assente"}).\n\nRisposta completa:\n${cleanedResponseText}`, wscode || "?");
       }
 
     } catch (err){
