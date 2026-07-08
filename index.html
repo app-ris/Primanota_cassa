@@ -526,10 +526,10 @@
     receiptStatus.classList.remove("ok", "err");
     if (kind === "ok"){
       receiptStatus.classList.add("ok");
-      receiptStatus.textContent = `WSCODE ${code} · OK`;
+      receiptStatus.textContent = "OK";
     } else if (kind === "err"){
       receiptStatus.classList.add("err");
-      receiptStatus.textContent = `WSCODE ${code} · Errore`;
+      receiptStatus.textContent = "Errore";
     } else if (kind === "network"){
       receiptStatus.classList.add("err");
       receiptStatus.textContent = "Chiamata non riuscita (rete/CORS)";
@@ -631,9 +631,8 @@
       const rowEls = findAllByLocalName(wsretEl, "row");
       const rowsText = rowEls.map((rowEl) => {
         const filename = deepDecode(textOf(findByLocalName(rowEl, "FILENAME")));
-        const risultato = deepDecode(textOf(findByLocalName(rowEl, "RISULTATO")));
         const messaggio = deepDecode(textOf(findByLocalName(rowEl, "MESSAGGIO")));
-        return `Filename: ${filename}\nrisultato: ${risultato}\nmessaggio: ${messaggio}`;
+        return `Filename: ${filename}\nmessaggio: ${messaggio}`;
       }).join("\n\n");
 
       if (wscode === "0"){
