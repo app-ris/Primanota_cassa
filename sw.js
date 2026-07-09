@@ -1,4 +1,4 @@
-const CACHE_NAME = "primanota-cassa-v16";
+const CACHE_NAME = "primanota-cassa-v24";
 const ASSETS = [
   "./",
   "./index.html",
