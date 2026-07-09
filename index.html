@@ -322,6 +322,55 @@
     color:#8ea0ae;
     margin-top:18px;
   }
+
+  .install-card{
+    margin-top:16px;
+    background:var(--paper);
+    border-radius:var(--radius);
+    overflow:hidden;
+  }
+  .install-card summary{
+    list-style:none;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    padding:14px 18px;
+    font-size:13px;
+    font-weight:700;
+    color:var(--ink);
+  }
+  .install-card summary::-webkit-details-marker{ display:none; }
+  .install-card summary .chev{
+    font-size:11px;
+    color:var(--brass-dark);
+    transition:transform .15s ease;
+  }
+  .install-card[open] summary .chev{ transform:rotate(90deg); }
+  .install-body{
+    padding:0 18px 18px;
+  }
+  .install-os{
+    margin-top:10px;
+  }
+  .install-os h3{
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    color:var(--ink-soft);
+    margin:0 0 8px;
+  }
+  .install-os ol{
+    margin:0;
+    padding-left:20px;
+    font-size:13px;
+    line-height:1.6;
+    color:var(--ink);
+  }
+  .install-os li{
+    margin-bottom:4px;
+  }
 </style>
 </head>
 <body>
@@ -377,6 +426,30 @@
       </div>
     </div>
   </div>
+
+  <details class="install-card">
+    <summary>Installa l'app sul telefono <span class="chev">&#9656;</span></summary>
+    <div class="install-body">
+      <div class="install-os">
+        <h3>Android (Chrome)</h3>
+        <ol>
+          <li>Apri questa pagina con Chrome.</li>
+          <li>Tocca il menu <strong>&#8942;</strong> (i tre puntini) in alto a destra.</li>
+          <li>Tocca <strong>"Aggiungi a schermata Home"</strong> (o <strong>"Installa app"</strong>, a seconda della versione di Chrome).</li>
+          <li>Conferma toccando <strong>"Aggiungi"</strong> o <strong>"Installa"</strong>.</li>
+        </ol>
+      </div>
+      <div class="install-os">
+        <h3>iPhone (Safari)</h3>
+        <ol>
+          <li>Apri questa pagina con <strong>Safari</strong> (su iPhone la funzione è disponibile solo da Safari, non da Chrome o altri browser).</li>
+          <li>Tocca l'icona di condivisione <strong>&#8593;&#9634;</strong> in basso al centro (o in alto, secondo il modello).</li>
+          <li>Scorri l'elenco e tocca <strong>"Aggiungi alla schermata Home"</strong>.</li>
+          <li>Tocca <strong>"Aggiungi"</strong> in alto a destra.</li>
+        </ol>
+      </div>
+    </div>
+  </details>
 </div>
 
 <script>
