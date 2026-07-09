@@ -720,7 +720,10 @@
       }).join("\n\n");
 
       if (wscode === "0"){
-        showResult("ok", [descr || "(WSDESCR vuoto)", rowsText].filter(Boolean).join("\n\n"), wscode);
+        let descrDisplay = descr || "(WSDESCR vuoto)";
+        // Va a capo dopo "PN Cassa Creata/Aggiornata" (con o senza spazi attorno alla barra)
+        descrDisplay = descrDisplay.replace(/(Creata\s*\/\s*Aggiornata)\s+/i, "$1\n");
+        showResult("ok", [descrDisplay, rowsText].filter(Boolean).join("\n\n"), wscode);
       } else if (wscode === "1"){
         const lines = [wserr || descr || "(nessun messaggio d'errore)"];
         if (wswar) lines.push("Avviso: " + wswar);
